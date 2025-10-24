@@ -14,5 +14,18 @@
     {
       "path": "./.nuxt/tsconfig.node.json"
     }
-  ]
+  ],
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "lib": ["ESNext", "DOM"],
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "jsx": "preserve",
+    "types": ["vite/client", "@types/node", "nuxt"]
+  },
+  "exclude": ["node_modules", ".nuxt", ".output", "dist"]
 }
