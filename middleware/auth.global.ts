@@ -3,7 +3,7 @@ import { useCookie } from "#app";
 
 export default defineNuxtRouteMiddleware((to, from) => {
   const member = useState("member");
-  const accessToken = useCookie("access_token");
+  const accessToken = useCookie("accessToken");
 
   // 인증 불필요한 공개 페이지
   const publicPaths = ["/login", "register", "/"];

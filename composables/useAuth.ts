@@ -12,7 +12,11 @@ import type {
 export const useAuth = () => {
   const { $api } = useNuxtApp();
   const member = useMember(); // 전역 상태 사용자 (useState기반)
-  const accessToken = useCookie("accessToken"); // JWT 저장용 쿠키
+  const accessToken = useCookie("accessToken", {
+    maxAge: 60 * 60 * 1,
+    sameSite: "lax",
+    path: "/",
+  }); // JWT 저장용 쿠키
 
   /**
    * 로그인
@@ -56,8 +60,11 @@ export const useAuth = () => {
       console.warn("사용자 정보 불러오기 실패:", err);
       member.value = null;
 
-      // 인증 실패 시 로그인 페이지로 이동
-      if (err?.status === 401) navigateTo("/login");
+      // 인증 실패 시 쿠키 초기화, 로그인 페이지로 이동
+      if (err?.status === 401) {
+        accessToken.value = null;
+        navigateTo("/login");
+      }
     }
   };
 

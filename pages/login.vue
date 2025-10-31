@@ -21,6 +21,7 @@
 import { ref } from "vue";
 import { useAuth } from "../composables/useAuth";
 import { useRouter } from "vue-router";
+import { nextTick } from "vue";
 
 // 입력값 저장용 반응형 변수 선언
 const email = ref("");
@@ -30,11 +31,11 @@ const router = useRouter();
 // useAuth에서 login 함수 불러오기
 const { login } = useAuth();
 
-// 로그인 함수 정의
 const onLogin = async () => {
   try {
     await login({ email: email.value, password: password.value });
-    router.push("/");
+    await nextTick();
+    router.push("/my-meal");
   } catch (err) {
     console.error("로그인 실패:", err);
   }
