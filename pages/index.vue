@@ -13,22 +13,28 @@
         :enable-time-picker="false"
       />
     </div>
-    <VueDatePicker v-model="selectedDate" :enable-time-picker="false" />
 
     <!-- 식단 목록 -->
     <div v-if="meals?.length" class="space-y-3">
       <div
         v-for="meal in meals"
-        :key="meal.mealId"
+        :key="meal.mealRecordId"
         class="border p-3 rounded shadow-sm"
       >
-        <strong>{{ meal.mealType }}</strong> — {{ meal.description }}
+        <strong>{{ meal.mealTime }}</strong> — {{ meal.memo || "메모 없음" }}
         <img
           v-if="meal.mealPhotoUrl"
           :src="meal.mealPhotoUrl"
           alt="식단 이미지"
           class="mt-2 rounded-lg max-h-48 object-cover"
         />
+
+        <ul class="mt-2 list-disc list-inside text-sm text-gray-600">
+          <li v-for="food in meal.foodItems" :key="food.foodName">
+            {{ food.foodName }} ({{ nutrientLabels[food.nutrientType] }}) -
+            {{ food.amount }}
+          </li>
+        </ul>
       </div>
     </div>
     <p v-else class="text-gray-500">등록된 식단이 없습니다.</p>
@@ -58,37 +64,34 @@
 </template>
 
 <script setup lang="ts">
+import { ref, watch, onMounted } from "vue";
+import { useNuxtApp } from "#app";
+import { format } from "date-fns"; // 날짜 포맷용 유틸
+import type { MealResponse } from "~/types/meal";
+import { mealTimeLabels, nutrientLabels } from "~/utils/enumLabel";
 import VueDatePicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
-import { ref, watch, onMounted } from "vue";
-import { useAuth } from "~/composables/useAuth";
-
-interface MealResponse {
-  mealId: number;
-  mealType: string;
-  description: string;
-  mealPhotoUrl?: string;
-}
 
 const { $api } = useNuxtApp();
-const { member, fetchUser } = useAuth(); // 로그인 사용자 정보 요청
 
-const selectedDate = ref(new Date().toISOString().split("T")[0]);
+const selectedDate = ref(new Date()); // 초기값: 오늘 날짜
 const meals = ref<MealResponse[]>([]);
+const member = useMember();
+
+// 날짜 포맷 변환 함수
+const formatDate = (date: Date) => format(date, "yyy-MM-dd");
 
 // 컴포넌트 마운트 시 사용자 정보 가져오기
 onMounted(async () => {
-  await fetchUser();
-  if (!member.value) return;
-
   await loadMeals();
 });
 
 // 식단 불러오기
 const loadMeals = async () => {
   try {
+    const formattedDate = formatDate(selectedDate.value);
     const res = await $api<MealResponse[]>(
-      `/meals/my-meal?date=${selectedDate.value}`
+      `/meals/my-meal?date=${formattedDate}`
     );
     meals.value = res;
   } catch (e: any) {
