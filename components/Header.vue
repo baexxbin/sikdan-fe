@@ -15,9 +15,8 @@ const onLogout = () => {
 
 <template>
   <header class="flex justify-between items-center p-4 bg-gray-100">
-    <div>🍽️ 식단 기록 서비스</div>
-    <div v-if="member?.value">
-      <span>{{ member.value.nickname }}님</span>
+    <div v-if="member && member.nickname">
+      <span>{{ member.nickname }}님</span>
       <button @click="onLogout" class="ml-2 text-red-500">로그아웃</button>
     </div>
   </header>

@@ -1,3 +1,4 @@
+// 백엔드와 통신하는 공통 함수 역할
 // 모든 API 호출을 공통적으로 처리하는 유틸리티: SSR 데이터용
 
 import { ref, watchEffect, type Ref } from "vue";
