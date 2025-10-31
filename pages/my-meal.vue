@@ -7,6 +7,7 @@
     <!-- 날짜 선택 -->
     <div class="mb-4">
       <label for="date" class="mr-2 font-semibold">날짜 선택:</label>
+      <!-- v-model은 ref인 selectedDate에 연결 -->
       <VueDatePicker
         v-model="selectedDate"
         :format="'yyyy-MM-dd'"
@@ -64,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from "vue";
+import { ref, watch, onMounted, computed } from "vue";
 import { useNuxtApp } from "#app";
 import { format } from "date-fns"; // 날짜 포맷용 유틸
 import type { MealResponse } from "~/types/meal";
@@ -74,10 +75,12 @@ import "@vuepic/vue-datepicker/dist/main.css";
 
 const { $api } = useNuxtApp();
 
-// 날짜 포맷 변환 함수
+// 1. DatePicker와 직접 연결될 ref
+const selectedDate = ref(new Date()); // 초기값: 오늘 날짜
+
+// 2. 날짜 포맷 변환 함수 (computed 읽기전용)
 const formattedDate = computed(() => format(selectedDate.value, "yyyy-MM-dd"));
 
-const selectedDate = ref(new Date()); // 초기값: 오늘 날짜
 const meals = ref<MealResponse[]>([]);
 const { member, fetchUser } = useAuth();
 
@@ -93,7 +96,7 @@ onMounted(async () => {
 const loadMeals = async () => {
   try {
     const res = await $api<MealResponse[]>(
-      `/meals/my-meal?date=${formattedDate}`
+      `/meals/my-meal?date=${formattedDate.value}`
     );
     meals.value = res;
   } catch (e: any) {
