@@ -66,15 +66,23 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from "vue";
-import { useNuxtApp } from "#app";
+import { useNuxtApp, useState } from "#app";
 import { format } from "date-fns"; // 날짜 포맷용 유틸
 import type { MealResponse } from "~/types/meal";
+import { fetchMealRecordsByDate } from "~/api/meal";
 import { mealTimeLabels, nutrientLabels } from "~/utils/enumLabel";
 import VueDatePicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
 
 const { $api } = useNuxtApp();
 
+// 날짜별 식단 데이터를 캐싱할 전역 상태 선언
+const mealsByDate = useState<Record<string, MealResponse[]>>(
+  "mealsByDate",
+  () => ({})
+);
+
+// 로컬 상태
 // 1. DatePicker와 직접 연결될 ref
 const selectedDate = ref(new Date()); // 초기값: 오늘 날짜
 
@@ -84,6 +92,34 @@ const formattedDate = computed(() => format(selectedDate.value, "yyyy-MM-dd"));
 const meals = ref<MealResponse[]>([]);
 const { member, fetchUser } = useAuth();
 
+// 식단 불러오기
+const loadMeals = async () => {
+  const dateKey = formattedDate.value;
+
+  // 캐시에 이미 존재할 시 API호출 안하고 그대로 사용
+  if (mealsByDate.value[dateKey]) {
+    meals.value = mealsByDate.value[dateKey];
+    return;
+  }
+
+  // 없을 경우 서버에서 불러오기
+  try {
+    const res = await fetchMealRecordsByDate(dateKey);
+    meals.value = res;
+
+    // 불러온 데이터 캐시 저장
+    mealsByDate.value[dateKey] = res;
+  } catch (e: any) {
+    console.error("식단 로드 실패", e);
+  }
+};
+
+function onMealUpdated(updatedMeal: MealResponse) {
+  meals.value = meals.value.map((m) =>
+    m.mealRecordId === updatedMeal.mealRecordId ? updatedMeal : m
+  );
+}
+
 // 컴포넌트 마운트 시 사용자 정보 가져오기
 onMounted(async () => {
   if (!member.value) await fetchUser();
@@ -91,18 +127,6 @@ onMounted(async () => {
     await loadMeals();
   }
 });
-
-// 식단 불러오기
-const loadMeals = async () => {
-  try {
-    const res = await $api<MealResponse[]>(
-      `/meals/my-meal?date=${formattedDate.value}`
-    );
-    meals.value = res;
-  } catch (e: any) {
-    console.error("식단 로드 실패", e);
-  }
-};
 
 // 날짜 변경 시 자동 새로고침
 watch(selectedDate, async () => {

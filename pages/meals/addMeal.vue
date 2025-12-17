@@ -82,7 +82,7 @@ const removeFoodItem = (index: number) => foodItems.value.splice(index, 1);
 
 const submitMeal = async () => {
   try {
-    await $api("/meals", {
+    await $api("/meals/record", {
       method: "POST",
       body: {
         mealTime: mealTime.value,

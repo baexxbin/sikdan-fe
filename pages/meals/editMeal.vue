@@ -1,67 +1,91 @@
 <template>
-  <div v-if="meal" class="p-6 space-y-3">
-    <h2 class="text-xl font-bold">식단 수정</h2>
+  <div class="container mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-6">
+      {{ member?.nickname }}님의 식단 수정
+    </h1>
 
-    <input
-      v-model="meal.memo"
-      placeholder="메모"
-      class="border p-2 w-full rounded"
-    />
-
-    <div
-      v-for="(item, i) in meal.foodItems"
-      :key="i"
-      class="border p-3 rounded space-y-2"
-    >
-      <input v-model="item.foodName" class="border p-2 w-full" />
-      <input v-model="item.amount" class="border p-2 w-full" />
-      <select v-model="item.nutrientType" class="border p-2 w-full">
-        <option value="CARB">탄수화물</option>
-        <option value="PROTEIN">단백질</option>
-        <option value="FAT">지방</option>
-        <option value="VITAMIN">비타민</option>
-        <option value="MINERAL">무기질</option>
-      </select>
+    <!-- 날짜 선택 -->
+    <div class="mb-4">
+      <label for="date" class="mr-2 font-semibold">날짜 선택:</label>
+      <VueDatePicker
+        v-model="selectedDate"
+        :format="'yyyy-MM-dd'"
+        :enable-time-picker="false"
+      />
     </div>
 
-    <button
-      @click="updateMeal"
-      class="bg-blue-500 text-white p-2 rounded w-full"
-    >
-      수정 완료
-    </button>
+    <!-- 식단 목록 -->
+    <div v-if="meals?.length" class="space-y-3">
+      <MealCard
+        v-for="meal in meals"
+        :key="meal.mealRecordId"
+        :meal="meal"
+        @updateMeal="onMealUpdated"
+        @editFood="onEditFood"
+      />
+    </div>
+    <p v-else class="text-gray-500">해당 날짜의 식단이 없습니다.</p>
+
+    <!-- 음식 수정 모달 (추후 구현 예정) -->
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import type { MealResponse } from "~/types/meal";
+import { ref, watch, computed, onMounted } from "vue";
+import { useNuxtApp } from "#app";
+import { format } from "date-fns";
+import { useRoute } from "vue-router";
+import VueDatePicker from "@vuepic/vue-datepicker";
+import "@vuepic/vue-datepicker/dist/main.css";
 
-const { $api } = useNuxtApp();
+import type { MealRecord, MealResponse } from "~/types/meal";
+import { fetchMealRecordsByDate } from "~/api/meal";
+import { useAuth } from "~/composables/useAuth";
+
+import MealCard from "~/components/meal/MealCard.vue";
+
+const { member, fetchUser } = useAuth();
 const route = useRoute();
-const router = useRouter();
 
-const meal = ref<MealResponse | null>(null);
+const selectedDate = ref<Date>(
+  route.query.date ? new Date(route.query.date as string) : new Date()
+);
+const formattedDate = computed(() => format(selectedDate.value, "yyyy-MM-dd"));
+const meals = ref<MealResponse[]>([]);
 
-const loadMeal = async () => {
-  const id = route.params.id;
-  const res = await $api<MealResponse>(`/meals/${id}`);
-  meal.value = res;
-};
-
-onMounted(loadMeal);
-
-const updateMeal = async () => {
+// 식단 불러오기
+const loadMeals = async () => {
   try {
-    await $api(`/meals/${meal.value?.mealRecordId}`, {
-      method: "PUT",
-      body: meal.value,
-    });
-    alert("식단이 수정되었습니다!");
-    router.push("my-meal");
-  } catch (e) {
-    console.error("식단 수정 실패", e);
+    const res = await fetchMealRecordsByDate(formattedDate.value);
+    meals.value = res;
+  } catch (err) {
+    console.error("식단 불러오기 실패:", err);
   }
 };
+
+// 수정 후 다시 목록 갱신
+const onMealUpdated = async () => {
+  await loadMeals();
+};
+
+// 음식 수정 (아직 미구현)
+const onEditFood = (food: any) => {
+  console.log("음식 수정 클릭:", food);
+};
+
+onMounted(async () => {
+  if (!member.value) await fetchUser();
+  if (member.value) await loadMeals();
+});
+
+// 날짜 변경 시 자동 새로고침
+watch(selectedDate, async () => {
+  await loadMeals();
+});
 </script>
+
+<style scoped>
+.container {
+  max-width: 700px;
+}
+</style>
